@@ -11,6 +11,7 @@ library(seewave)
 library(tuneR)
 library(signal)
 library(rgl)
+library(ggplot2)
 
 
 # obtiene datos https://metadata.fundacionsadosky.org.ar/competition/14/
@@ -22,6 +23,7 @@ archivoURL <-
 if (!file.exists(archivodestino)) {
   download.file(archivoURL ,archivodestino,method="auto")
   unzip(archivodestino)
+  download.file("https://www.dropbox.com/s/z1cwznln0gfpw32/train_labels.csv?raw=1","train_labels.csv",method = "auto")
   }
 
 
