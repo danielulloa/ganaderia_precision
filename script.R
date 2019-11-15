@@ -1,42 +1,109 @@
-library(rstudioapi) # cargo una libreria para configurar el path automaticamente
-current_path <- getActiveDocumentContext()$path # obtengo el path donde está el script
-setwd(dirname(current_path )) # cambio el path
+# script utilizado para explorar datos de la competencia "IA en Ganadería de Precisión"
+# https://metadata.fundacionsadosky.org.ar/competition/14/
 
+
+library(rstudioapi) # carga una libreria para configurar el path automaticamente
+current_path <- getActiveDocumentContext()$path # el path donde está el script
+setwd(dirname(current_path )) # cambia el path
+
+# librerias a utilizar
 library(seewave)
 library(tuneR)
 library(signal)
 library(rgl)
 
 
+# obtiene datos https://metadata.fundacionsadosky.org.ar/competition/14/
 archivodestino="data.zip" # nombre de archivo a descargar
 archivoURL <-
   "https://www.dropbox.com/s/d12x5vknrk9yek1/data.zip?raw=1"
+
+# verifica si existe el archivo en el directorio y extrae
 if (!file.exists(archivodestino)) {
   download.file(archivoURL ,archivodestino,method="auto")
   unzip(archivodestino)
   }
 
-sound <- readWave("data/0001.wav")
 
+
+#generar un vector con la ubicacion relativa de los archivos
 file.names <- dir("data", pattern="wav$")
-#soundfiles <- file.names[runif(4,0,1000)]
-soundfiles <- file.names[c(1023,765,43,2354)]
+file.names <- paste("data", file.names, sep="/")
 
+
+
+# elegir 3 archivos
+soundfiles <- file.names[runif(3,0,length(file.names))]
+#soundfiles <- file.names[c(1023,765,43,2354)]
+
+# carga un sonido
+sound <- readWave(file.names[1])
+
+# grafico de oscilograma y espectograma
+par(mfrow=c(1,1), mar=c(5,5,1,1))
 oscillo(sound)
-spectro(sound,ovlp=75, wl=1024,flim=c(0,0.65))
-flim <- c(0,.6)
-col <- "blue"
-par(mfrow=c(4,3), # 4 * 3 figure plate organisation
-    mar=c(4.5,4,1,1), # margins
-    lwd=0.5) # line width for all graphics
+flim <- c(0,.65)
+spectro(sound,ovlp=75, wl=1024,flim=flim)
 
+
+# genera graficos exploratorios
+
+col <- "blue"
+par(mfrow=c(3,3),mar=c(4,4,1,1))
 
 for(i in 1:length(soundfiles)){
-  sound = readWave(paste("data", soundfiles[[i]], sep="/"))
+  sound = readWave(soundfiles[i])
   oscillo(sound, colwave=col, cexlab=0.7)
-  spec(sound, flim=flim, col=col)
+  spec(sound, flim=flim)
   phaseplot(sound, dim=2, col=col)
 }
 
-sound = readWave(paste("data", file.names[22], sep="/"))
+# diagrama de fase de un tono puro, outlier del dataset
+sound = readWave(file.names[22])
 phaseplot(sound, dim=3, col=col)
+
+
+# analisis estadistico de los archivos etiquetados para entrenamiento
+train <- read.csv("train_labels.csv")
+
+fpromedio <- c()
+fkurt <- c()
+intdb <- c()
+hshannon <- c()
+
+# analisis espectral para determinar frecuencia promedio, entropia de shannon
+for(i in 1:nrow(train)){
+  sound <- readWave(file.names[train$filename[i]])
+  f=sound@samp.rate
+  tmp<-meanspec(sound,f=22050,plot=FALSE)
+  fpromedio[i] <- specprop(tmp,f=f)$mean
+  fkurt[i] <- specprop(tmp,f=f)$kurtosis
+  intdb[i] <- meandB(tmp, level ="IL")
+  hshannon[i] <- sh(tmp, alpha = "shannon")
+}
+
+# concatena los vectores generados al dataframe
+train=data.frame(train,fkurt,fpromedio,intdb,hshannon)
+
+# etiqueta los datos
+
+# Masticación (o chew, del inglés): Consiste en el triturado del alimento ingerido.
+#   El animal utiliza las piezas dentarias posteriores. 
+#   Se da mayormente durante la rumia pero también está presente durante el pastoreo.
+# 
+# Arranque (o bite, del inglés): Consiste en el corte y rasgado de la pastura. 
+#   El animal utiliza las piezas dentarias anteriores. 
+#   Se da únicamente en el pastoreo.
+#    
+# Arranque-masticación (o chew-bite, del inglés): Es un solo movimiento
+#   que consiste en la combinación de los dos anteriores.
+#   Se da únicamente en el pastoreo.
+
+train$label <- factor(train$label,
+                    levels = c(0,1,2),
+                    labels = c("bite", "chew", "chew-bite")) 
+
+ggplot(train, aes(train$fpromedio, train$hshannon, color=train$label)) +
+  geom_point()+
+  xlim(350,2000)
+
