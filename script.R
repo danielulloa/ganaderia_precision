@@ -109,3 +109,117 @@ ggplot(train, aes(train$fpromedio, train$hshannon, color=train$label)) +
   geom_point()+
   xlim(350,2000)
 
+# apilar las componentes de la fft por grupos
+# crear una matriz vacia
+# a <- matrix(nrow=10,ncol=12)
+# numeros = 1:12
+# a[1,] <- rbind(numeros)
+# a[2,] <- rbind(numeros)
+# a[4:6,] <- rbind(numeros)
+
+cuenta1=0
+cuenta2=0
+cuenta3=0
+for(i in 1:nrow(train)){
+  if (train$label[i]=='bite'){
+    cuenta1=cuenta1+1
+  }
+  else if (train$label[i]=='chew'){
+    cuenta2=cuenta2+1
+  }
+  else if (train$label[i]=='chew-bite'){
+    cuenta3=cuenta3+1
+  }
+}
+f=sound@samp.rate
+fmax=0.5*sound@samp.rate
+grupo1 <- matrix(nrow = cuenta1, ncol = 8820)
+grupo2 <- matrix(nrow = cuenta2, ncol = 8820)
+grupo3 <- matrix(nrow = cuenta3, ncol = 8820)
+
+cuenta1=0
+cuenta2=0
+cuenta3=0
+for(i in 1:nrow(train)){
+
+sound <- readWave(file.names[train$filename[i]])
+f=sound@samp.rate
+tmp <- spec(sound,f=f,plot=FALSE)[,2]
+if (train$label[i]=='bite'){
+  cuenta1=cuenta1+1
+  grupo1[cuenta1,] <- tmp
+}
+else if (train$label[i]=='chew'){
+  cuenta2=cuenta2+1
+  grupo2[cuenta2,] <- tmp
+}
+else if (train$label[i]=='chew-bite'){
+  cuenta3=cuenta3+1
+  grupo3[cuenta3,] <- tmp
+}
+}
+f <- spec(sound,f=f,plot=FALSE)[,1]
+grupo1df <- data.frame(grupo1df,f)
+
+grupo1df <- as.data.frame(t(grupo1))
+grupo2df <- as.data.frame(t(grupo2))
+grupo3df <- as.data.frame(t(grupo3))
+
+ggplot(grupo1df,aes(t,y=value, color=variable))+
+  geom_line(aes(y=V1,col="V1"))+
+  geom_line(aes(y=V2,col="V2"))+
+  geom_line(aes(y=V3,col="V3"))+
+  geom_line(aes(y=V4,col="V4"))+
+  geom_line(aes(y=V5,col="V5"))+
+  geom_line(aes(y=V6,col="V6"))+
+  geom_line(aes(y=V7,col="V7"))+
+  xlim(0,0.65)
+
+ggplot(grupo2df,aes(t,y=value, color=variable))+
+  geom_line(aes(y=V1,col="V1"))+
+  geom_line(aes(y=V2,col="V2"))+
+  geom_line(aes(y=V3,col="V3"))+
+  geom_line(aes(y=V4,col="V4"))+
+  geom_line(aes(y=V5,col="V5"))+
+  geom_line(aes(y=V6,col="V6"))+
+  geom_line(aes(y=V7,col="V7"))+
+  xlim(0,0.65)
+
+ggplot(grupo3df,aes(t,y=value, color=variable))+
+  geom_line(aes(y=V1,col="V1"))+
+  geom_line(aes(y=V2,col="V2"))+
+  geom_line(aes(y=V3,col="V3"))+
+  geom_line(aes(y=V4,col="V4"))+
+  geom_line(aes(y=V5,col="V5"))+
+  geom_line(aes(y=V6,col="V6"))+
+  geom_line(aes(y=V7,col="V7"))+
+  xlim(0,0.65)
+
+p <- ggplot(data=grupo1df, aes(x=t))
+# loop
+for (i in 1:50) {
+  # use aes_string with names of the data.frame
+  p <- p + geom_line(aes_string(y = names(grupo1df)[i],col=names(grupo1df)[i]))+ xlim(0,1)
+}
+# print the result
+print(p)
+
+p2 <- ggplot(data=grupo2df, aes(x=t))
+# loop
+for (i in 1:50) {
+  # use aes_string with names of the data.frame
+  p2 <- p2 + geom_line(aes_string(y = names(grupo2df)[i],col=names(grupo2df)[i]))+ xlim(0,1)
+}
+# print the result
+print(p2)
+
+p3 <- ggplot(data=grupo3df, aes(x=t))
+# loop
+for (i in 1:50) {
+  # use aes_string with names of the data.frame
+  p3 <- p3 + geom_line(aes_string(y = names(grupo3df)[i],col=names(grupo3df)[i]))+ xlim(0,1)
+}
+# print the result
+print(p3)
+
+par(mfrow=c(3,1),mar=c(4,4,1,1))
